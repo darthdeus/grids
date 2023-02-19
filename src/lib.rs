@@ -20,11 +20,7 @@ impl<T: Clone> Grid<T> {
         }
     }
 
-    pub fn filled_with<F: Fn(i32, i32) -> T>(
-        width: i32,
-        height: i32,
-        f: F,
-    ) -> Self {
+    pub fn filled_with<F: Fn(i32, i32) -> T>(width: i32, height: i32, f: F) -> Self {
         let mut data = Vec::with_capacity((width * height) as usize);
 
         for x in 0..width {
@@ -46,6 +42,10 @@ impl<T: Clone> Grid<T> {
 
     pub fn height(&self) -> i32 {
         self.height as i32
+    }
+
+    pub fn is_valid(&self, coord: glam::IVec2) -> bool {
+        coord.x >= 0 && coord.x < self.width() && coord.y >= 0 && coord.y < self.height()
     }
 
     pub fn get(&self, x: i32, y: i32) -> &T {
@@ -80,11 +80,7 @@ impl<T: Clone> Grid<T> {
         self.get_mut(x, y)
     }
 
-    pub fn iter_rect(
-        &self,
-        min: IVec2,
-        max: IVec2,
-    ) -> impl Iterator<Item = (i32, i32, &T)> {
+    pub fn iter_rect(&self, min: IVec2, max: IVec2) -> impl Iterator<Item = (i32, i32, &T)> {
         let mut coords = vec![];
 
         for x in min.x..max.x {
@@ -154,9 +150,7 @@ impl<T: Clone> Grid<T> {
             .map(|(x, y, v)| (glam::IVec2::new(x as i32, y as i32), v))
     }
 
-    pub fn iter_coords_mut(
-        &mut self,
-    ) -> impl Iterator<Item = (glam::IVec2, &mut T)> {
+    pub fn iter_coords_mut(&mut self) -> impl Iterator<Item = (glam::IVec2, &mut T)> {
         self.iter_mut().map(|(x, y, v)| (glam::IVec2::new(x, y), v))
     }
 
