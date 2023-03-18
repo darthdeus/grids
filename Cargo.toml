@@ -4,6 +4,7 @@ version = "0.1.2"
 edition = "2021"
 description = "2D grid data structure for games."
 authors = ["Jakub Arnold <darthdeus@gmail.com>"]
+license = "MIT"
 
 [features]
 default = []
