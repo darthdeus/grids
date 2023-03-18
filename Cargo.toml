@@ -2,8 +2,8 @@
 name = "grids"
 version = "0.1.2"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "2D grid data structure for games."
+authors = ["Jakub Arnold <darthdeus@gmail.com>"]
 
 [features]
 default = []
