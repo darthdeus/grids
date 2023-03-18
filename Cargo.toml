@@ -12,5 +12,5 @@ serde = ["dep:serde", "dep:serde_derive"]
 
 [dependencies]
 glam = "0.23.0"
-serde = { version = "*", optional = true }
-serde_derive = { version = "*", optional = true }
+serde = { version = "1.0", optional = true }
+serde_derive = { version = "1.0", optional = true }
