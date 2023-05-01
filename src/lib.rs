@@ -20,7 +20,7 @@ impl<T: Clone> Grid<T> {
         }
     }
 
-    pub fn filled_with<F: Fn(i32, i32) -> T>(width: i32, height: i32, f: F) -> Self {
+    pub fn filled_with<F: FnMut(i32, i32) -> T>(width: i32, height: i32, mut f: F) -> Self {
         let mut data = Vec::with_capacity((width * height) as usize);
 
         for x in 0..width {

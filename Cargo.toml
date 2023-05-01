@@ -1,6 +1,6 @@
 [package]
 name = "grids"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "2D grid data structure for games."
 authors = ["Jakub Arnold <darthdeus@gmail.com>"]
