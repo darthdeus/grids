@@ -23,8 +23,8 @@ impl<T: Clone> Grid<T> {
     pub fn filled_with<F: FnMut(i32, i32) -> T>(width: i32, height: i32, mut f: F) -> Self {
         let mut data = Vec::with_capacity((width * height) as usize);
 
-        for x in 0..width {
-            for y in 0..height {
+        for y in 0..height {
+            for x in 0..width {
                 data.push(f(x, y));
             }
         }
@@ -37,11 +37,11 @@ impl<T: Clone> Grid<T> {
     }
 
     pub fn width(&self) -> i32 {
-        self.width as i32
+        self.width
     }
 
     pub fn height(&self) -> i32 {
-        self.height as i32
+        self.height
     }
 
     pub fn is_valid(&self, coord: glam::IVec2) -> bool {
