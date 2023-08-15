@@ -116,8 +116,8 @@ impl<T: Clone> Grid<T> {
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32, &T)> {
         self.data.iter().enumerate().map(|(i, v)| {
             let i = i as i32;
-            let x = i % self.width as i32;
-            let y = i / self.width as i32;
+            let x = i % self.width;
+            let y = i / self.width;
 
             (x, y, v)
         })
@@ -134,8 +134,8 @@ impl<T: Clone> Grid<T> {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (i32, i32, &mut T)> {
         self.data.iter_mut().enumerate().map(|(i, v)| {
             let i = i as i32;
-            let x = i % self.width as i32;
-            let y = i / self.height as i32;
+            let x = i % self.width;
+            let y = i / self.height;
 
             (x, y, v)
         })
@@ -147,7 +147,7 @@ impl<T: Clone> Grid<T> {
 
     pub fn iter_coords(&self) -> impl Iterator<Item = (glam::IVec2, &T)> {
         self.iter()
-            .map(|(x, y, v)| (glam::IVec2::new(x as i32, y as i32), v))
+            .map(|(x, y, v)| (glam::IVec2::new(x, y), v))
     }
 
     pub fn iter_coords_mut(&mut self) -> impl Iterator<Item = (glam::IVec2, &mut T)> {
@@ -258,6 +258,23 @@ fn test_stuff() {
     assert_eq!(grid[glam::IVec2::new(1, 0)], 0);
     assert_eq!(grid[glam::UVec2::new(0, 1)], 5);
 
+    assert_eq!(
+        grid.into_iter_values().collect::<Vec<_>>(),
+        vec![0, 0, 0, 5, 0, 0]
+    );
+}
+
+#[test]
+fn readme_test() {
+    let mut grid = Grid::new(3, 2, 0); // A 3x2 grid filled with zeros.
+    grid[(0, 1)] = 5;
+
+    // Accessing using glam::IVec2.
+    assert_eq!(grid[glam::IVec2::new(1, 0)], 0);
+    // Accessing using glam::UVec2.
+    assert_eq!(grid[glam::UVec2::new(0, 1)], 5);
+
+    // Converting grid to a Vec.
     assert_eq!(
         grid.into_iter_values().collect::<Vec<_>>(),
         vec![0, 0, 0, 5, 0, 0]
