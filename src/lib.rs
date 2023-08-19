@@ -57,8 +57,18 @@ impl<T: Clone> Grid<T> {
     }
 
     pub fn get_clamped(&self, x: i32, y: i32) -> &T {
-        let x = x.clamp(0, self.width as i32 - 1);
-        let y = y.clamp(0, self.height as i32 - 1);
+        let x = x.clamp(0, self.width - 1);
+        let y = y.clamp(0, self.height - 1);
+
+        self.get(x, y)
+    }
+
+    pub fn get_clamped_v(&self, v: glam::IVec2) -> &T {
+        let x = v.x;
+        let y = v.y;
+
+        let x = x.clamp(0, self.width - 1);
+        let y = y.clamp(0, self.height - 1);
 
         self.get(x, y)
     }
@@ -67,15 +77,15 @@ impl<T: Clone> Grid<T> {
         let x = v.x as i32;
         let y = v.y as i32;
 
-        let x = x.clamp(0, self.width as i32 - 1);
-        let y = y.clamp(0, self.height as i32 - 1);
+        let x = x.clamp(0, self.width - 1);
+        let y = y.clamp(0, self.height - 1);
 
         self.get(x, y)
     }
 
     pub fn get_clamped_mut(&mut self, x: i32, y: i32) -> &mut T {
-        let x = x.clamp(0, self.width as i32 - 1);
-        let y = y.clamp(0, self.height as i32 - 1);
+        let x = x.clamp(0, self.width - 1);
+        let y = y.clamp(0, self.height - 1);
 
         self.get_mut(x, y)
     }
@@ -146,8 +156,7 @@ impl<T: Clone> Grid<T> {
     }
 
     pub fn iter_coords(&self) -> impl Iterator<Item = (glam::IVec2, &T)> {
-        self.iter()
-            .map(|(x, y, v)| (glam::IVec2::new(x, y), v))
+        self.iter().map(|(x, y, v)| (glam::IVec2::new(x, y), v))
     }
 
     pub fn iter_coords_mut(&mut self) -> impl Iterator<Item = (glam::IVec2, &mut T)> {
