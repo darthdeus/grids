@@ -6,9 +6,9 @@ use std::ops::{Index, IndexMut};
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Grid<T> {
-    data: Vec<T>,
-    width: i32,
-    height: i32,
+    pub data: Vec<T>,
+    pub width: i32,
+    pub height: i32,
 }
 
 impl<T: Clone> Grid<T> {
