@@ -173,6 +173,10 @@ impl<T: Clone> Grid<T> {
         self.data.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
     pub fn size(&self) -> IVec2 {
         IVec2::new(self.width(), self.height())
     }
@@ -200,6 +204,35 @@ impl<T: Clone> Grid<T> {
         }
 
         result
+    }
+
+    /// Returns an iterator over the rows of the grid.
+    ///
+    /// ```
+    /// use grids::Grid;
+    ///
+    /// let mut grid = Grid::new(3, 2, 0);
+    ///
+    /// grid[(0, 0)] = 1;
+    /// grid[(1, 0)] = 2;
+    /// grid[(2, 0)] = 3;
+    /// grid[(0, 1)] = 5;
+    /// grid[(1, 1)] = 6;
+    /// grid[(2, 1)] = 7;
+    ///
+    /// let mut row_iter = grid.row_iter();
+    /// assert_eq!(row_iter.next().unwrap().cloned().collect::<Vec<_>>(), vec![1, 2, 3]);
+    /// assert_eq!(row_iter.next().unwrap().cloned().collect::<Vec<_>>(), vec![5, 6, 7]);
+    /// assert!(row_iter.next().is_none()
+    /// )
+    ///
+    /// ```
+    pub fn row_iter(&self) -> impl Iterator<Item = core::slice::Iter<'_, T>> {
+        (0..self.height).map(move |y| {
+            let start = (y * self.width) as usize;
+            let end = start + self.width as usize;
+            self.data[start..end].iter()
+        })
     }
 }
 
@@ -288,4 +321,51 @@ fn readme_test() {
         grid.into_iter_values().collect::<Vec<_>>(),
         vec![0, 0, 0, 5, 0, 0]
     );
+}
+
+#[test]
+fn test_row_iter_empty_grid() {
+    let grid: Grid<i32> = Grid::new(0, 0, 0);
+    let mut row_iter = grid.row_iter();
+
+    assert!(row_iter.next().is_none());
+}
+
+#[test]
+fn test_row_iter_single_row() {
+    let grid = Grid::new(3, 1, 42);
+    let mut row_iter = grid.row_iter();
+
+    if let Some(row) = row_iter.next() {
+        let row: Vec<_> = row.cloned().collect();
+        assert_eq!(row, vec![42, 42, 42]);
+    } else {
+        panic!("Expected one row, but got none");
+    }
+
+    assert!(row_iter.next().is_none());
+}
+
+#[test]
+fn test_row_iter_multiple_rows() {
+    let grid = Grid::filled_with(3, 3, |x, y| x + y);
+    let mut row_iter = grid.row_iter();
+
+    #[rustfmt::skip]
+    let expected_rows = vec![
+        vec![0, 1, 2],
+        vec![1, 2, 3],
+        vec![2, 3, 4]
+    ];
+
+    for (i, expected_row) in expected_rows.iter().enumerate() {
+        if let Some(row) = row_iter.next() {
+            let row: Vec<_> = row.cloned().collect();
+            assert_eq!(&row, expected_row, "Row {} did not match", i);
+        } else {
+            panic!("Expected more rows, but got none");
+        }
+    }
+
+    assert!(row_iter.next().is_none(), "Expected no more rows");
 }
