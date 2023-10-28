@@ -1,7 +1,7 @@
 use glam::IVec2;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Mul};
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -233,6 +233,77 @@ impl<T: Clone> Grid<T> {
             let end = start + self.width as usize;
             self.data[start..end].iter()
         })
+    }
+
+    /// asserts that both grids have the same dimensions
+    pub fn ensure_dimensions_match<R>(&self, other: &Grid<R>) {
+        assert_eq!(
+            self.width, other.width,
+            "Grids need the same width {} vs {}",
+            self.width, other.width
+        );
+        assert_eq!(
+            self.height, other.height,
+            "Grids need the same height {} vs {}",
+            self.height, other.height
+        );
+    }
+
+    /// multiplies each value in the grid with each value at the same
+    /// coordinate in the other grid
+    /// and returns a new grid, leaving the parameters untouched
+    /// panics if dimensions don't match
+    pub fn mul<R, O>(&mut self, other: &Grid<R>) -> Grid<O>
+    where
+        T: Mul<R, Output = O>,
+        R: Clone,
+    {
+        self.ensure_dimensions_match(other);
+        let mut data: Vec<O> = Vec::with_capacity(self.data.len());
+        for (lhs, rhs) in self.data.iter().zip(other.data.iter()) {
+            data.push(lhs.clone().mul(rhs.clone()));
+        }
+        Grid {
+            data,
+            width: self.width,
+            height: self.height,
+        }
+    }
+
+    /// multiplies each value in the grid with each value at the same
+    /// coordinate in the other grid
+    /// modifies the grid in place
+    /// panics if dimensions don't match
+    fn mul_inplace<R>(&mut self, other: &Grid<R>) -> &mut Self
+    where
+        T: Mul<R, Output = T>,
+        R: Clone,
+    {
+        self.ensure_dimensions_match(other);
+        for (lhs, rhs) in self.data.iter_mut().zip(other.data.iter()) {
+            *lhs = lhs.clone().mul(rhs.clone());
+        }
+        self
+    }
+
+    /// multiplies each value in the grid with the scalar
+    /// coordinate in the other grid
+    /// modifies the grid in place
+    /// panics if dimensions don't match
+    fn mul_scalar<R, O>(&mut self, scalar: R) -> Grid<O>
+    where
+        T: Mul<R, Output = O>,
+        R: Clone,
+    {
+        let mut data: Vec<O> = Vec::with_capacity(self.data.len());
+        for lhs in self.data.iter() {
+            data.push(lhs.clone().mul(scalar.clone()));
+        }
+        Grid {
+            data,
+            width: self.width,
+            height: self.height,
+        }
     }
 }
 
