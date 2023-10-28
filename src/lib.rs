@@ -276,7 +276,7 @@ impl<T: Clone> Grid<T> {
     /// modifies the grid in place
     ///
     /// panics if dimensions don't match
-    fn mul_inplace<R>(&mut self, other: &Grid<R>) -> &mut Self
+    pub fn mul_inplace<R>(&mut self, other: &Grid<R>) -> &mut Self
     where
         T: Mul<R, Output = T>,
         R: Clone,
@@ -290,11 +290,12 @@ impl<T: Clone> Grid<T> {
 
     /// multiplies each value in the grid with the scalar
     /// and returns a new grid, leaving the old one untouched
-    fn mul_scalar<R, O>(&self, scalar: R) -> Grid<O>
+    pub fn mul_scalar<R, O>(&self, scalar: impl AsRef<R>) -> Grid<O>
     where
         T: Mul<R, Output = O>,
         R: Clone,
     {
+        let scalar = scalar.as_ref();
         let mut data: Vec<O> = Vec::with_capacity(self.data.len());
         for lhs in self.data.iter() {
             data.push(lhs.clone().mul(scalar.clone()));
@@ -303,6 +304,24 @@ impl<T: Clone> Grid<T> {
             data,
             width: self.width,
             height: self.height,
+        }
+    }
+
+    /// clamps all values in the grid, so that
+    /// `min <= value <= max`
+    pub fn clamp_values<Ref>(&mut self, min: Ref, max: Ref)
+    where
+        T: PartialOrd<T>,
+        Ref: AsRef<T>,
+    {
+        let min = min.as_ref();
+        let max = max.as_ref();
+        for value in self.data.iter_mut() {
+            if (*value).lt(min) {
+                *value = min.clone();
+            } else if (*value).gt(max) {
+                *value = max.clone();
+            }
         }
     }
 }
