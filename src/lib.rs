@@ -236,6 +236,7 @@ impl<T: Clone> Grid<T> {
     }
 
     /// asserts that both grids have the same dimensions
+    /// panics if they don't
     pub fn ensure_dimensions_match<R>(&self, other: &Grid<R>) {
         assert_eq!(
             self.width, other.width,
