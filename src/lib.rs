@@ -253,16 +253,18 @@ impl<T: Clone> Grid<T> {
     /// multiplies each value in the grid with each value at the same
     /// coordinate in the other grid
     /// and returns a new grid, leaving the parameters untouched
+    /// if types differ the type of the lhs is converted to the type of the rhs
     ///
     /// panics if dimensions don't match
     pub fn mul<R, O>(&self, other: &Grid<R>) -> Grid<O>
     where
-        T: Mul<R, Output = O>,
-        R: Clone,
+        T: Into<R>,
+        R: Clone + Mul<R, Output = O>,
     {
         self.ensure_dimensions_match(other);
         let mut data: Vec<O> = Vec::with_capacity(self.data.len());
         for (lhs, rhs) in self.data.iter().zip(other.data.iter()) {
+            let lhs: R = lhs.clone().into();
             data.push(lhs.clone().mul(rhs.clone()));
         }
         Grid {
@@ -296,13 +298,14 @@ impl<T: Clone> Grid<T> {
     /// panics if dimensions don't match
     pub fn add<R, O>(&self, other: &Grid<R>) -> Grid<O>
     where
-        T: Add<R, Output = O>,
-        R: Clone,
+        T: Into<R>,
+        R: Clone + Add<R, Output = O>,
     {
         self.ensure_dimensions_match(other);
         let mut data: Vec<O> = Vec::with_capacity(self.data.len());
         for (lhs, rhs) in self.data.iter().zip(other.data.iter()) {
-            data.push(lhs.clone().add(rhs.clone()));
+            let lhs: R = lhs.clone().into();
+            data.push(lhs.add(rhs.clone()));
         }
         Grid {
             data,
@@ -330,15 +333,16 @@ impl<T: Clone> Grid<T> {
 
     /// multiplies each value in the grid with the scalar
     /// and returns a new grid, leaving the old one untouched
-    pub fn mul_scalar<R, O>(&self, scalar: impl AsRef<R>) -> Grid<O>
+    /// if types differ the type of the lhs is converted to the type of the rhs
+    pub fn mul_scalar<R, O>(&self, scalar: R) -> Grid<O>
     where
-        T: Mul<R, Output = O>,
-        R: Clone,
+        T: Into<R>,
+        R: Clone + Mul<R, Output = O>,
     {
-        let scalar = scalar.as_ref();
         let mut data: Vec<O> = Vec::with_capacity(self.data.len());
         for lhs in self.data.iter() {
-            data.push(lhs.clone().mul(scalar.clone()));
+            let lhs: R = lhs.clone().into();
+            data.push(lhs.mul(scalar.clone()));
         }
         Grid {
             data,
@@ -349,17 +353,14 @@ impl<T: Clone> Grid<T> {
 
     /// clamps all values in the grid, so that
     /// `min <= value <= max`
-    pub fn clamp_values<Ref>(&mut self, min: Ref, max: Ref)
+    pub fn clamp_values(&mut self, min: T, max: T)
     where
         T: PartialOrd<T>,
-        Ref: AsRef<T>,
     {
-        let min = min.as_ref();
-        let max = max.as_ref();
         for value in self.data.iter_mut() {
-            if (*value).lt(min) {
+            if (*value).lt(&min) {
                 *value = min.clone();
-            } else if (*value).gt(max) {
+            } else if (*value).gt(&max) {
                 *value = max.clone();
             }
         }
@@ -498,4 +499,53 @@ fn test_row_iter_multiple_rows() {
     }
 
     assert!(row_iter.next().is_none(), "Expected no more rows");
+}
+
+#[test]
+fn test_grid_mul() {
+    let mut mask_grid = Grid::filled_with(3, 3, |x, y| if y > 0 { 0 } else { x + 9 });
+    let mut value_grid = Grid::filled_with(3, 3, |x, y| x + y);
+
+    mask_grid.clamp_values(0, 1);
+    let result = value_grid.mul(&mask_grid);
+
+    #[rustfmt::skip]
+    let expected_data = vec![
+        0, 1, 2,
+        0, 0, 0,
+        0, 0, 0
+    ];
+
+    assert_eq!(expected_data, result.data);
+
+    // test inplace multiplication too
+    assert_ne!(expected_data, value_grid.data);
+    value_grid.mul_inplace(&mask_grid);
+    assert_eq!(expected_data, value_grid.data);
+
+    // also scalar multiplication while changing the grid type from int to float
+    let doubled_float = value_grid.mul_scalar(2.0);
+    assert_eq!(4., doubled_float[(2, 0)]);
+
+    // multiplying with a float grid
+    let float_grid = Grid::new(3, 3, 1.5);
+    let value_grid_float = value_grid.mul(&float_grid);
+    assert_eq!(3., value_grid_float[(2, 0)]);
+}
+
+#[test]
+fn test_grid_add() {
+    let mut a = Grid::new(3, 3, 1);
+    let b = Grid::new(3, 3, 2);
+    let c = a.add(&b);
+    assert_eq!(3, c[(2, 2)]);
+
+    // inplace
+    a.add_inplace(&b);
+    assert_eq!(3, a[(2, 2)]);
+
+    // add float
+    let b = Grid::new(3, 3, 0.5);
+    let c = a.add(&b);
+    assert_eq!(3.5, c[(2, 2)]);
 }
