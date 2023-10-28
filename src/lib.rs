@@ -252,8 +252,9 @@ impl<T: Clone> Grid<T> {
     /// multiplies each value in the grid with each value at the same
     /// coordinate in the other grid
     /// and returns a new grid, leaving the parameters untouched
+    ///
     /// panics if dimensions don't match
-    pub fn mul<R, O>(&mut self, other: &Grid<R>) -> Grid<O>
+    pub fn mul<R, O>(&self, other: &Grid<R>) -> Grid<O>
     where
         T: Mul<R, Output = O>,
         R: Clone,
@@ -273,6 +274,7 @@ impl<T: Clone> Grid<T> {
     /// multiplies each value in the grid with each value at the same
     /// coordinate in the other grid
     /// modifies the grid in place
+    ///
     /// panics if dimensions don't match
     fn mul_inplace<R>(&mut self, other: &Grid<R>) -> &mut Self
     where
@@ -287,10 +289,8 @@ impl<T: Clone> Grid<T> {
     }
 
     /// multiplies each value in the grid with the scalar
-    /// coordinate in the other grid
-    /// modifies the grid in place
-    /// panics if dimensions don't match
-    fn mul_scalar<R, O>(&mut self, scalar: R) -> Grid<O>
+    /// and returns a new grid, leaving the old one untouched
+    fn mul_scalar<R, O>(&self, scalar: R) -> Grid<O>
     where
         T: Mul<R, Output = O>,
         R: Clone,
