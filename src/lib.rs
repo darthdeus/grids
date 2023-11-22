@@ -1,7 +1,7 @@
 use glam::IVec2;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::ops::{Index, IndexMut};
+use std::ops::{Add, Index, IndexMut, Mul};
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -234,6 +234,137 @@ impl<T: Clone> Grid<T> {
             self.data[start..end].iter()
         })
     }
+
+    /// asserts that both grids have the same dimensions
+    /// panics if they don't
+    pub fn ensure_dimensions_match<R>(&self, other: &Grid<R>) {
+        assert_eq!(
+            self.width, other.width,
+            "Grids need the same width {} vs {}",
+            self.width, other.width
+        );
+        assert_eq!(
+            self.height, other.height,
+            "Grids need the same height {} vs {}",
+            self.height, other.height
+        );
+    }
+
+    /// multiplies each value in the grid with each value at the same
+    /// coordinate in the other grid
+    /// and returns a new grid, leaving the parameters untouched
+    /// if types differ the type of the lhs is converted to the type of the rhs
+    ///
+    /// panics if dimensions don't match
+    pub fn mul<R, O>(&self, other: &Grid<R>) -> Grid<O>
+    where
+        T: Into<R>,
+        R: Clone + Mul<R, Output = O>,
+    {
+        self.ensure_dimensions_match(other);
+        let mut data: Vec<O> = Vec::with_capacity(self.data.len());
+        for (lhs, rhs) in self.data.iter().zip(other.data.iter()) {
+            let lhs: R = lhs.clone().into();
+            data.push(lhs.clone().mul(rhs.clone()));
+        }
+        Grid {
+            data,
+            width: self.width,
+            height: self.height,
+        }
+    }
+
+    /// multiplies each value in the grid with each value at the same
+    /// coordinate in the other grid
+    /// modifies the grid in place
+    ///
+    /// panics if dimensions don't match
+    pub fn mul_inplace<R>(&mut self, other: &Grid<R>) -> &mut Self
+    where
+        T: Mul<R, Output = T>,
+        R: Clone,
+    {
+        self.ensure_dimensions_match(other);
+        for (lhs, rhs) in self.data.iter_mut().zip(other.data.iter()) {
+            *lhs = lhs.clone().mul(rhs.clone());
+        }
+        self
+    }
+
+    /// adds each value in the grid with each value at the same
+    /// coordinate in the other grid
+    /// and returns a new grid, leaving the parameters untouched
+    ///
+    /// panics if dimensions don't match
+    pub fn add<R, O>(&self, other: &Grid<R>) -> Grid<O>
+    where
+        T: Into<R>,
+        R: Clone + Add<R, Output = O>,
+    {
+        self.ensure_dimensions_match(other);
+        let mut data: Vec<O> = Vec::with_capacity(self.data.len());
+        for (lhs, rhs) in self.data.iter().zip(other.data.iter()) {
+            let lhs: R = lhs.clone().into();
+            data.push(lhs.add(rhs.clone()));
+        }
+        Grid {
+            data,
+            width: self.width,
+            height: self.height,
+        }
+    }
+
+    /// adds each value in the grid with each value at the same
+    /// coordinate in the other grid
+    /// modifies the grid in place
+    ///
+    /// panics if dimensions don't match
+    pub fn add_inplace<R>(&mut self, other: &Grid<R>) -> &mut Self
+    where
+        T: Add<R, Output = T>,
+        R: Clone,
+    {
+        self.ensure_dimensions_match(other);
+        for (lhs, rhs) in self.data.iter_mut().zip(other.data.iter()) {
+            *lhs = lhs.clone().add(rhs.clone());
+        }
+        self
+    }
+
+    /// multiplies each value in the grid with the scalar
+    /// and returns a new grid, leaving the old one untouched
+    /// if types differ the type of the lhs is converted to the type of the rhs
+    pub fn mul_scalar<R, O>(&self, scalar: R) -> Grid<O>
+    where
+        T: Into<R>,
+        R: Clone + Mul<R, Output = O>,
+    {
+        let mut data: Vec<O> = Vec::with_capacity(self.data.len());
+        for lhs in self.data.iter() {
+            let lhs: R = lhs.clone().into();
+            data.push(lhs.mul(scalar.clone()));
+        }
+        Grid {
+            data,
+            width: self.width,
+            height: self.height,
+        }
+    }
+
+    /// clamps all values in the grid, so that
+    /// `min <= value <= max`
+    pub fn clamp_values(&mut self, min: T, max: T)
+    where
+        T: PartialOrd<T>,
+    {
+        for value in self.data.iter_mut() {
+            if (*value).lt(&min) {
+                *value = min.clone();
+            } else if (*value).gt(&max) {
+                *value = max.clone();
+            }
+        }
+    }
 }
 
 impl<T: Clone> Index<(i32, i32)> for Grid<T> {
@@ -368,4 +499,53 @@ fn test_row_iter_multiple_rows() {
     }
 
     assert!(row_iter.next().is_none(), "Expected no more rows");
+}
+
+#[test]
+fn test_grid_mul() {
+    let mut mask_grid = Grid::filled_with(3, 3, |x, y| if y > 0 { 0 } else { x + 9 });
+    let mut value_grid = Grid::filled_with(3, 3, |x, y| x + y);
+
+    mask_grid.clamp_values(0, 1);
+    let result = value_grid.mul(&mask_grid);
+
+    #[rustfmt::skip]
+    let expected_data = vec![
+        0, 1, 2,
+        0, 0, 0,
+        0, 0, 0
+    ];
+
+    assert_eq!(expected_data, result.data);
+
+    // test inplace multiplication too
+    assert_ne!(expected_data, value_grid.data);
+    value_grid.mul_inplace(&mask_grid);
+    assert_eq!(expected_data, value_grid.data);
+
+    // also scalar multiplication while changing the grid type from int to float
+    let doubled_float = value_grid.mul_scalar(2.0);
+    assert_eq!(4., doubled_float[(2, 0)]);
+
+    // multiplying with a float grid
+    let float_grid = Grid::new(3, 3, 1.5);
+    let value_grid_float = value_grid.mul(&float_grid);
+    assert_eq!(3., value_grid_float[(2, 0)]);
+}
+
+#[test]
+fn test_grid_add() {
+    let mut a = Grid::new(3, 3, 1);
+    let b = Grid::new(3, 3, 2);
+    let c = a.add(&b);
+    assert_eq!(3, c[(2, 2)]);
+
+    // inplace
+    a.add_inplace(&b);
+    assert_eq!(3, a[(2, 2)]);
+
+    // add float
+    let b = Grid::new(3, 3, 0.5);
+    let c = a.add(&b);
+    assert_eq!(3.5, c[(2, 2)]);
 }
